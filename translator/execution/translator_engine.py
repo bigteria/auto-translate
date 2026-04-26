@@ -37,14 +37,34 @@ class TranslatorEngine:
         return []
 
     def find_cache(self, text, threshold=0.95):
+        if not text: return None, 0
+        
+        # 1. First check for exact match (very fast)
+        for entry in self.kb_data:
+            if entry['ko'] == text:
+                return entry, 1.0
+        
+        # 2. Fuzzy match with length filtering
         best_match = None
         max_ratio = 0
+        text_len = len(text)
         
         for entry in self.kb_data:
+            ko_len = len(entry['ko'])
+            if ko_len == 0: continue
+            
+            # Quick length-based filtering:
+            # If the length ratio is less than the threshold, 
+            # SequenceMatcher can't possibly return a ratio >= threshold.
+            len_ratio = min(text_len, ko_len) / max(text_len, ko_len)
+            if len_ratio < threshold:
+                continue
+            
             ratio = difflib.SequenceMatcher(None, text, entry['ko']).ratio()
             if ratio > max_ratio:
                 max_ratio = ratio
                 best_match = entry
+                if max_ratio >= 1.0: break
         
         if max_ratio >= threshold:
             return best_match, max_ratio
