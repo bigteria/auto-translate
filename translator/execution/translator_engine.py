@@ -49,6 +49,12 @@ class TranslatorEngine:
         max_ratio = 0
         text_len = len(text)
         
+        # If the text is extremely long (e.g., > 2000 chars), 
+        # difflib's O(N*M) complexity becomes too slow for a web request.
+        # We skip fuzzy matching for such long texts and rely on AI directly.
+        if text_len > 2000:
+            return None, 0
+            
         for entry in self.kb_data:
             ko_len = len(entry['ko'])
             if ko_len == 0: continue
